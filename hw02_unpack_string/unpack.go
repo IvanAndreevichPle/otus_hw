@@ -40,7 +40,6 @@ func Unpack(s string) (string, error) {
 	return result.String(), nil
 }
 
-
 func handleDigit(result *strings.Builder, previousChar rune, count int) {
 	if count == 0 {
 		str := result.String()
