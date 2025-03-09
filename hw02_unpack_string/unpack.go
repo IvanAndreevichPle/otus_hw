@@ -11,49 +11,52 @@ var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(s string) (string, error) {
 	var result strings.Builder
-	var prevChar rune
-	var escaped bool
-	var prevWasDigit bool
+	var previousChar rune
+	var isShielded bool
+	var isPreviousDigit bool
 
 	for _, char := range s {
-		if unicode.IsDigit(char) && !escaped {
-			if prevChar == 0 || prevWasDigit {
+		if unicode.IsDigit(char) && !isShielded {
+			if previousChar == 0 || isPreviousDigit {
 				return "", ErrInvalidString
 			}
-			count, _ := strconv.Atoi(string(char))
-			handleDigit(&result, prevChar, count)
-			prevWasDigit = true
+			count, err := strconv.Atoi(string(char))
+			if err != nil {
+				return "", errors.New("failed to convert character to integer")
+			}
+			handleDigit(&result, previousChar, count)
+			isPreviousDigit = true
 		} else {
-			handleChar(&result, char, &escaped)
-			prevChar = char
-			prevWasDigit = false
+			handleChar(&result, char, &isShielded)
+			previousChar = char
+			isPreviousDigit = false
 		}
 	}
 
-	if escaped {
+	if isShielded {
 		return "", ErrInvalidString
 	}
 
 	return result.String(), nil
 }
 
-func handleDigit(result *strings.Builder, prevChar rune, count int) {
+func handleDigit(result *strings.Builder, previousChar rune, count int) {
 	if count == 0 {
 		str := result.String()
 		result.Reset()
-		result.WriteString(str[:len(str)-len(string(prevChar))])
+		result.WriteString(str[:len(str)-len(string(previousChar))])
 	} else {
-		result.WriteString(strings.Repeat(string(prevChar), count-1))
+		result.WriteString(strings.Repeat(string(previousChar), count-1))
 	}
 }
 
-func handleChar(result *strings.Builder, char rune, escaped *bool) {
+func handleChar(result *strings.Builder, char rune, isShielded *bool) {
 	switch {
-	case *escaped:
+	case *isShielded:
 		result.WriteRune(char)
-		*escaped = false
+		*isShielded = false
 	case char == '\\':
-		*escaped = true
+		*isShielded = true
 	default:
 		result.WriteRune(char)
 	}
