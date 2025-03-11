@@ -22,7 +22,7 @@ func Unpack(s string) (string, error) {
 			}
 			count, err := strconv.Atoi(string(char))
 			if err != nil {
-				return "", errors.New("failed to convert character to integer")
+				return "", err
 			}
 			handleDigit(&result, previousChar, count)
 			isPreviousDigit = true
@@ -41,23 +41,25 @@ func Unpack(s string) (string, error) {
 }
 
 func handleDigit(result *strings.Builder, previousChar rune, count int) {
+	previousCharStr := string(previousChar)
 	if count == 0 {
 		str := result.String()
 		result.Reset()
-		result.WriteString(str[:len(str)-len(string(previousChar))])
+		result.WriteString(str[:len(str)-len(previousCharStr)])
 	} else {
-		result.WriteString(strings.Repeat(string(previousChar), count-1))
+		result.WriteString(strings.Repeat(previousCharStr, count-1))
 	}
 }
 
 func handleChar(result *strings.Builder, char rune, isShielded *bool) {
+	charStr := string(char)
 	switch {
 	case *isShielded:
-		result.WriteRune(char)
+		result.WriteString(charStr)
 		*isShielded = false
 	case char == '\\':
 		*isShielded = true
 	default:
-		result.WriteRune(char)
+		result.WriteString(charStr)
 	}
 }
