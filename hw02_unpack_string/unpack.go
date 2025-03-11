@@ -16,18 +16,20 @@ func Unpack(s string) (string, error) {
 	var isPreviousDigit bool
 
 	for _, char := range s {
+		charStr := string(char)
 		if unicode.IsDigit(char) && !isShielded {
 			if previousChar == 0 || isPreviousDigit {
 				return "", ErrInvalidString
 			}
-			count, err := strconv.Atoi(string(char))
+			count, err := strconv.Atoi(charStr)
 			if err != nil {
 				return "", err
 			}
 			handleDigit(&result, previousChar, count)
 			isPreviousDigit = true
 		} else {
-			handleChar(&result, char, &isShielded)
+			// Преобразуем символ в строку один раз
+			handleChar(&result, char, charStr, &isShielded)
 			previousChar = char
 			isPreviousDigit = false
 		}
@@ -51,11 +53,14 @@ func handleDigit(result *strings.Builder, previousChar rune, count int) {
 	}
 }
 
-func handleChar(result *strings.Builder, char rune, isShielded *bool) {
-	charStr := string(char)
+func handleChar(result *strings.Builder, char rune, charStr string, isShielded *bool) {
 	switch {
 	case *isShielded:
-		result.WriteString(charStr)
+		if char == '\\' || unicode.IsDigit(char) {
+			result.WriteString(charStr)
+		} else {
+			return
+		}
 		*isShielded = false
 	case char == '\\':
 		*isShielded = true
