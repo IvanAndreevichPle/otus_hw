@@ -28,7 +28,6 @@ func Unpack(s string) (string, error) {
 			handleDigit(&result, previousChar, count)
 			isPreviousDigit = true
 		} else {
-			// Преобразуем символ в строку один раз
 			handleChar(&result, char, charStr, &isShielded)
 			previousChar = char
 			isPreviousDigit = false
