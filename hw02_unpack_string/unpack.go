@@ -11,50 +11,59 @@ var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(s string) (string, error) {
 	var result strings.Builder
-	var prevChar rune
-	var escaped bool
-	var prevWasDigit bool
+	var previousChar rune
+	var isShielded bool
+	var isPreviousDigit bool
 
 	for _, char := range s {
-		if unicode.IsDigit(char) && !escaped {
-			if prevChar == 0 || prevWasDigit {
+		charStr := string(char)
+		if unicode.IsDigit(char) && !isShielded {
+			if previousChar == 0 || isPreviousDigit {
 				return "", ErrInvalidString
 			}
-			count, _ := strconv.Atoi(string(char))
-			handleDigit(&result, prevChar, count)
-			prevWasDigit = true
+			count, err := strconv.Atoi(charStr)
+			if err != nil {
+				return "", err
+			}
+			handleDigit(&result, previousChar, count)
+			isPreviousDigit = true
 		} else {
-			handleChar(&result, char, &escaped)
-			prevChar = char
-			prevWasDigit = false
+			handleChar(&result, char, charStr, &isShielded)
+			previousChar = char
+			isPreviousDigit = false
 		}
 	}
 
-	if escaped {
+	if isShielded {
 		return "", ErrInvalidString
 	}
 
 	return result.String(), nil
 }
 
-func handleDigit(result *strings.Builder, prevChar rune, count int) {
+func handleDigit(result *strings.Builder, previousChar rune, count int) {
+	previousCharStr := string(previousChar)
 	if count == 0 {
 		str := result.String()
 		result.Reset()
-		result.WriteString(str[:len(str)-len(string(prevChar))])
+		result.WriteString(str[:len(str)-len(previousCharStr)])
 	} else {
-		result.WriteString(strings.Repeat(string(prevChar), count-1))
+		result.WriteString(strings.Repeat(previousCharStr, count-1))
 	}
 }
 
-func handleChar(result *strings.Builder, char rune, escaped *bool) {
+func handleChar(result *strings.Builder, char rune, charStr string, isShielded *bool) {
 	switch {
-	case *escaped:
-		result.WriteRune(char)
-		*escaped = false
+	case *isShielded:
+		if char == '\\' || unicode.IsDigit(char) {
+			result.WriteString(charStr)
+		} else {
+			return
+		}
+		*isShielded = false
 	case char == '\\':
-		*escaped = true
+		*isShielded = true
 	default:
-		result.WriteRune(char)
+		result.WriteString(charStr)
 	}
 }
