@@ -180,5 +180,3 @@ func BenchmarkTop10(b *testing.B) {
 		})
 	}
 }
-
-//go test -bench=. -benchmem
