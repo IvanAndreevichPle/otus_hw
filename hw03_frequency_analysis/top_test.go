@@ -1,13 +1,14 @@
 package hw03frequencyanalysis
 
 import (
+	"math/rand"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-// Change to true if needed.
-var taskWithAsteriskIsCompleted = false
+var taskWithAsteriskIsCompleted = true
 
 var text = `Как видите, он  спускается  по  лестнице  вслед  за  своим
 	другом   Кристофером   Робином,   головой   вниз,  пересчитывая
@@ -79,4 +80,105 @@ func TestTop10(t *testing.T) {
 			require.Equal(t, expected, Top10(text))
 		}
 	})
+
+	t.Run("words with hyphens and punctuation", func(t *testing.T) {
+		input := "какой-то какой-то! какойто, 'какой-то' ----"
+		expected := []string{"какой-то", "----", "какойто"}
+		require.Equal(t, expected, Top10(input))
+	})
+
+	t.Run("ignore single hyphen", func(t *testing.T) {
+		input := "- ---"
+		expected := []string{"---"}
+		require.Equal(t, expected, Top10(input))
+	})
+
+	t.Run("case insensitivity", func(t *testing.T) {
+		input := "Нога нога НОГА"
+		expected := []string{"нога"}
+		require.Equal(t, expected, Top10(input))
+	})
+
+	t.Run("internal punctuation", func(t *testing.T) {
+		input := "dog,cat dog...cat dogcat"
+		expected := []string{"dog,cat", "dog...cat", "dogcat"}
+		require.Equal(t, expected, Top10(input))
+	})
+
+	t.Run("sorting order", func(t *testing.T) {
+		input := "b b a a a c"
+		expected := []string{"a", "b", "c"}
+		require.Equal(t, expected, Top10(input))
+	})
 }
+
+func BenchmarkTop10(b *testing.B) {
+	genText := func(wordCount int, punctuationProb float32) string {
+		r := rand.New(rand.NewSource(42)) // Фиксированный генератор
+		var buf strings.Builder
+
+		words := []string{"apple", "banana", "cherry", "date", "fig", "grape", "kiwi"}
+		punctuations := []rune{'!', ',', '.', ';', ':', '-', '\'', '"'}
+
+		for i := 0; i < wordCount; i++ {
+			if r.Float32() < punctuationProb {
+				buf.WriteRune(punctuations[r.Intn(len(punctuations))])
+			}
+
+			buf.WriteString(words[r.Intn(len(words))])
+
+			if r.Float32() < punctuationProb {
+				buf.WriteRune(punctuations[r.Intn(len(punctuations))])
+			}
+
+			buf.WriteByte(' ')
+		}
+		return buf.String()
+	}
+
+	benchmarks := []struct {
+		name          string
+		textGenerator func() string
+	}{
+		{
+			name: "SmallText",
+			textGenerator: func() string {
+				return genText(100, 0.2)
+			},
+		},
+		{
+			name: "MediumText",
+			textGenerator: func() string {
+				return genText(10_000, 0.3)
+			},
+		},
+		{
+			name: "LargeText",
+			textGenerator: func() string {
+				return genText(1_000_000, 0.1)
+			},
+		},
+		{
+			name: "HyphenHeavy",
+			textGenerator: func() string {
+				return "foo-bar-baz " + strings.Repeat("test-test-test ", 1000)
+			},
+		},
+	}
+
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			testText := bm.textGenerator()
+			b.ReportAllocs()
+			b.ResetTimer() // Таймер после генерации данных
+
+			for i := 0; i < b.N; i++ {
+				Top10(testText)
+			}
+
+			b.ReportMetric(float64(len(testText))/1e6, "MB")
+		})
+	}
+}
+
+//go test -bench=. -benchmem
