@@ -17,13 +17,31 @@ func Top10(input string) []string {
 	wordsMap := make(map[string]int)
 
 	for _, word := range words {
-		cleaned := strings.ToLower(
-			strings.TrimFunc(word, func(r rune) bool {
-				return r != '-' && unicode.IsPunct(r)
-			}),
-		)
+		cleaned := func() string {
+			isPunctuationOnly := func(s string) bool {
+				if len(s) == 0 {
+					return false
+				}
+				for _, r := range s {
+					if !unicode.IsPunct(r) {
+						return false
+					}
+				}
+				return len(s) > 1
+			}
 
-		if cleaned == "" || cleaned == "-" {
+			trimPunctuation := func(s string) string {
+				return strings.TrimFunc(s, unicode.IsPunct)
+			}
+
+			if isPunctuationOnly(word) {
+				return word
+			}
+
+			return strings.ToLower(trimPunctuation(word))
+		}()
+
+		if cleaned == "" {
 			continue
 		}
 

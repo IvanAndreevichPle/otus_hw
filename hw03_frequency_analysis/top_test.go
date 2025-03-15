@@ -93,6 +93,12 @@ func TestTop10(t *testing.T) {
 		require.Equal(t, expected, Top10(input))
 	})
 
+	t.Run("different punctuations", func(t *testing.T) {
+		input := "- --- ,,,, ,,,, ,,,, ,,,, ### ### ###"
+		expected := []string{",,,,", "###", "---"}
+		require.Equal(t, expected, Top10(input))
+	})
+
 	t.Run("case insensitivity", func(t *testing.T) {
 		input := "Нога нога НОГА"
 		expected := []string{"нога"}
