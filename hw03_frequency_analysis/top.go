@@ -40,7 +40,8 @@ func Top10(input string) []string {
 
 	result := make([]string, min(len(keys), limit))
 	copy(result, keys)
-	return result[:min(len(result), limit)]
+
+	return result
 }
 
 func cleanWord(word string) string {
