@@ -45,18 +45,6 @@ func Top10(input string) []string {
 }
 
 func cleanWord(word string) string {
-	isPunctuationOnly := func(s string) bool {
-		if len(s) == 0 {
-			return false
-		}
-		for _, r := range s {
-			if !unicode.IsPunct(r) {
-				return false
-			}
-		}
-		return len(s) > 1
-	}
-
 	trimPunctuation := func(s string) string {
 		return strings.TrimFunc(s, unicode.IsPunct)
 	}
@@ -66,4 +54,16 @@ func cleanWord(word string) string {
 	}
 
 	return strings.ToLower(trimPunctuation(word))
+}
+
+func isPunctuationOnly(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	for _, r := range s {
+		if !unicode.IsPunct(r) {
+			return false
+		}
+	}
+	return len(s) > 1
 }
