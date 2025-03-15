@@ -17,29 +17,7 @@ func Top10(input string) []string {
 	wordsMap := make(map[string]int)
 
 	for _, word := range words {
-		cleaned := func() string {
-			isPunctuationOnly := func(s string) bool {
-				if len(s) == 0 {
-					return false
-				}
-				for _, r := range s {
-					if !unicode.IsPunct(r) {
-						return false
-					}
-				}
-				return len(s) > 1
-			}
-
-			trimPunctuation := func(s string) string {
-				return strings.TrimFunc(s, unicode.IsPunct)
-			}
-
-			if isPunctuationOnly(word) {
-				return word
-			}
-
-			return strings.ToLower(trimPunctuation(word))
-		}()
+		cleaned := cleanWord(word)
 
 		if cleaned == "" {
 			continue
@@ -60,5 +38,31 @@ func Top10(input string) []string {
 		return wordsMap[keys[i]] > wordsMap[keys[j]]
 	})
 
-	return keys[:min(len(keys), limit)]
+	result := make([]string, min(len(keys), limit))
+	copy(result, keys)
+	return result[:min(len(result), limit)]
+}
+
+func cleanWord(word string) string {
+	isPunctuationOnly := func(s string) bool {
+		if len(s) == 0 {
+			return false
+		}
+		for _, r := range s {
+			if !unicode.IsPunct(r) {
+				return false
+			}
+		}
+		return len(s) > 1
+	}
+
+	trimPunctuation := func(s string) string {
+		return strings.TrimFunc(s, unicode.IsPunct)
+	}
+
+	if isPunctuationOnly(word) {
+		return word
+	}
+
+	return strings.ToLower(trimPunctuation(word))
 }
