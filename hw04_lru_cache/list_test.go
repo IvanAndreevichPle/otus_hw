@@ -48,4 +48,90 @@ func TestList(t *testing.T) {
 		}
 		require.Equal(t, []int{70, 80, 60, 40, 10, 30, 50}, elems)
 	})
+
+	t.Run("edge cases", func(t *testing.T) {
+		l := NewList()
+
+		// Тест добавления и удаления одного элемента
+		l.PushFront(1)
+		require.Equal(t, 1, l.Len())
+		require.Equal(t, 1, l.Front().Value)
+		require.Equal(t, 1, l.Back().Value)
+
+		l.Remove(l.Front())
+		require.Equal(t, 0, l.Len())
+		require.Nil(t, l.Front())
+		require.Nil(t, l.Back())
+
+		// Тест добавления после удаления всех элементов
+		l.PushBack(2)
+		require.Equal(t, 1, l.Len())
+		require.Equal(t, 2, l.Front().Value)
+		require.Equal(t, 2, l.Back().Value)
+	})
+
+	t.Run("different types", func(t *testing.T) {
+		l := NewList()
+
+		// Тест с разными типами данных
+		l.PushFront("string")
+		l.PushBack(42)
+		l.PushBack(true)
+		l.PushBack(3.14)
+
+		require.Equal(t, 4, l.Len())
+		require.Equal(t, "string", l.Front().Value)
+		require.Equal(t, 3.14, l.Back().Value)
+	})
+
+	t.Run("move operations", func(t *testing.T) {
+		l := NewList()
+
+		// Тест операций перемещения
+		l.PushBack(1)
+		l.PushBack(2)
+		l.PushBack(3)
+		l.PushBack(4)
+
+		// Перемещение среднего элемента в начало
+		middle := l.Front().Next
+		l.MoveToFront(middle)
+		require.Equal(t, 2, l.Front().Value)
+
+		// Перемещение последнего элемента в начало
+		l.MoveToFront(l.Back())
+		require.Equal(t, 4, l.Front().Value)
+
+		// Проверка порядка элементов
+		elems := make([]int, 0, l.Len())
+		for i := l.Front(); i != nil; i = i.Next {
+			elems = append(elems, i.Value.(int))
+		}
+		require.Equal(t, []int{4, 2, 1, 3}, elems)
+	})
+
+	t.Run("remove operations", func(t *testing.T) {
+		l := NewList()
+
+		// Тест операций удаления
+		l.PushBack(1)
+		l.PushBack(2)
+		l.PushBack(3)
+		l.PushBack(4)
+
+		// Удаление первого элемента
+		l.Remove(l.Front())
+		require.Equal(t, 2, l.Front().Value)
+
+		// Удаление последнего элемента
+		l.Remove(l.Back())
+		require.Equal(t, 3, l.Back().Value)
+
+		// Удаление всех элементов
+		l.Remove(l.Front())
+		l.Remove(l.Front())
+		require.Equal(t, 0, l.Len())
+		require.Nil(t, l.Front())
+		require.Nil(t, l.Back())
+	})
 }
