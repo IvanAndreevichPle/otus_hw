@@ -89,7 +89,7 @@ func TestCache(t *testing.T) {
 	})
 }
 
-func TestCacheMultithreading(t *testing.T) {
+func TestCacheMultithreading(_ *testing.T) {
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
@@ -111,7 +111,7 @@ func TestCacheMultithreading(t *testing.T) {
 	wg.Wait()
 }
 
-func TestCacheMultithreadingMixed(t *testing.T) {
+func TestCacheMultithreadingMixed(_ *testing.T) {
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(3)
@@ -176,7 +176,7 @@ func TestCacheEdgeCases(t *testing.T) {
 	})
 }
 
-func TestCacheStressTest(t *testing.T) {
+func TestCacheStressTest(_ *testing.T) {
 	c := NewCache(100)
 	wg := &sync.WaitGroup{}
 	ops := 1000
@@ -185,29 +185,29 @@ func TestCacheStressTest(t *testing.T) {
 
 	// Writers
 	for i := 0; i < goroutines; i++ {
-		go func(id int) {
+		go func() {
 			defer wg.Done()
 			for j := 0; j < ops; j++ {
 				key := Key(strconv.Itoa(rand.Intn(ops)))
 				c.Set(key, j)
 			}
-		}(i)
+		}()
 	}
 
 	// Readers
 	for i := 0; i < goroutines; i++ {
-		go func(id int) {
+		go func() {
 			defer wg.Done()
 			for j := 0; j < ops; j++ {
 				key := Key(strconv.Itoa(rand.Intn(ops)))
 				c.Get(key)
 			}
-		}(i)
+		}()
 	}
 
 	// Mixed operations
 	for i := 0; i < goroutines; i++ {
-		go func(id int) {
+		go func() {
 			defer wg.Done()
 			for j := 0; j < ops; j++ {
 				switch rand.Intn(3) {
@@ -221,7 +221,7 @@ func TestCacheStressTest(t *testing.T) {
 					c.Clear()
 				}
 			}
-		}(i)
+		}()
 	}
 
 	wg.Wait()
