@@ -185,29 +185,29 @@ func TestCacheStressTest(_ *testing.T) {
 
 	// Writers
 	for i := 0; i < goroutines; i++ {
-		go func() {
+		go func(_ int) {
 			defer wg.Done()
 			for j := 0; j < ops; j++ {
 				key := Key(strconv.Itoa(rand.Intn(ops)))
 				c.Set(key, j)
 			}
-		}()
+		}(i)
 	}
 
 	// Readers
 	for i := 0; i < goroutines; i++ {
-		go func() {
+		go func(_ int) {
 			defer wg.Done()
 			for j := 0; j < ops; j++ {
 				key := Key(strconv.Itoa(rand.Intn(ops)))
 				c.Get(key)
 			}
-		}()
+		}(i)
 	}
 
 	// Mixed operations
 	for i := 0; i < goroutines; i++ {
-		go func() {
+		go func(_ int) {
 			defer wg.Done()
 			for j := 0; j < ops; j++ {
 				switch rand.Intn(3) {
@@ -221,7 +221,7 @@ func TestCacheStressTest(_ *testing.T) {
 					c.Clear()
 				}
 			}
-		}()
+		}(i)
 	}
 
 	wg.Wait()
