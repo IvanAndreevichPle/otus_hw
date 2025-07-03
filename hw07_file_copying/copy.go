@@ -9,12 +9,15 @@ import (
 	"time"
 )
 
+// Объявление ошибок для специфических случаев
 var (
 	ErrUnsupportedFile       = errors.New("unsupported file")
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
 )
 
-// Функция для определения оптимального размера буфера в зависимости от размера файла
+// optimalBufferSize возвращает оптимальный размер буфера для копирования
+// в зависимости от размера файла. Это помогает ускорить копирование
+// и не расходовать лишнюю память.
 func optimalBufferSize(fileSize int64) int {
 	switch {
 	case fileSize < 128*1024: // до 128 КБ
@@ -30,80 +33,97 @@ func optimalBufferSize(fileSize int64) int {
 	}
 }
 
+// Copy копирует данные из файла fromPath в файл toPath с поддержкой смещения (offset)
+// и лимита (limit). В процессе копирования отображается прогресс-бар.
 func Copy(fromPath, toPath string, offset, limit int64) error {
+	// Открываем исходный файл для чтения
 	file, err := os.Open(fromPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
+	// Получаем информацию о файле (размер, тип)
 	info, err := file.Stat()
 	if err != nil {
 		return err
 	}
-	// Поддержка файла
+	// Проверяем, что это обычный файл, а не, например, директория или спецфайл
 	if !info.Mode().IsRegular() {
 		return ErrUnsupportedFile
 	}
 	// Получаем размер файла
 	fileSize := info.Size()
+	// Проверяем, что смещение не превышает размер файла
 	if offset > fileSize {
 		return ErrOffsetExceedsFileSize
 	}
-	// Проверка установки указателя в нужню позицию
+	// Устанавливаем указатель чтения на нужную позицию
 	_, err = file.Seek(offset, io.SeekStart)
 	if err != nil {
 		return err
 	}
-	// Осталось записать
+	// Определяем, сколько байт нужно скопировать
 	remain := fileSize - offset
 	toCopy := remain
 	if limit > 0 && limit < remain {
 		toCopy = limit
 	}
 
+	// Открываем файл назначения для записи
 	dst, err := os.Create(toPath)
 	if err != nil {
 		return err
 	}
 	defer dst.Close()
 
+	// Выбираем оптимальный размер буфера для копирования
 	bufSize := optimalBufferSize(toCopy)
 	buf := make([]byte, bufSize)
 	var copied int64
-	start := time.Now()
+	start := time.Now() // Запоминаем время начала для расчёта скорости и ETA
 
+	// Основной цикл копирования
 	for copied < toCopy {
 		readSize := bufSize
 		left := toCopy - copied
+		// Если осталось скопировать меньше, чем размер буфера, уменьшаем размер чтения
 		if left < int64(readSize) {
 			readSize = int(left)
 		}
+		// Читаем данные из исходного файла
 		n, readErr := file.Read(buf[:readSize])
 		if n > 0 {
+			// Пишем прочитанные данные в файл назначения
 			written, writeErr := dst.Write(buf[:n])
 			if writeErr != nil {
 				return writeErr
 			}
+			// Проверяем, что записано столько же байт, сколько прочитано
 			if written != n {
 				return io.ErrShortWrite
 			}
 			copied += int64(written)
+			// Отображаем прогресс-бар
 			printProgress(copied, toCopy, start)
 		}
+		// Если достигнут конец файла, выходим из цикла
 		if readErr == io.EOF {
 			break
 		}
+		// Если возникла другая ошибка при чтении, возвращаем её
 		if readErr != nil {
 			return readErr
 		}
 	}
+	// После завершения копирования гарантируем отображение 100% прогресса
 	printProgress(toCopy, toCopy, start)
 	fmt.Println()
 	return nil
 }
 
-// Функция отображения прогресс-бара
+// printProgress отображает прогресс-бар в консоли, а также скорость копирования и ETA.
+// Использует ANSI-цвета для красивого отображения.
 func printProgress(done, total int64, start time.Time) {
 	if total == 0 {
 		fmt.Print("\r\033[32m[████████████████████████████████████████] 100%\033[0m")
@@ -133,7 +153,7 @@ func printProgress(done, total int64, start time.Time) {
 		percent = 100
 	}
 
-	// Скорость и время
+	// Вычисляем скорость копирования и ETA
 	elapsed := time.Since(start).Seconds()
 	speed := float64(done) / 1024 / elapsed // KB/sec
 	var eta string
@@ -144,5 +164,6 @@ func printProgress(done, total int64, start time.Time) {
 		eta = ""
 	}
 
+	// Выводим прогресс-бар, процент, скорость и ETA
 	fmt.Printf("\r%s %3d%% \033[36m%6.1f KB/s%s\033[0m", bar, percent, speed, eta)
 }
