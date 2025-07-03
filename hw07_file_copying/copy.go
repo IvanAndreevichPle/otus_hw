@@ -14,13 +14,29 @@ var (
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
 )
 
+// Функция для определения оптимального размера буфера в зависимости от размера файла
+func optimalBufferSize(fileSize int64) int {
+	switch {
+	case fileSize < 128*1024: // до 128 КБ
+		return 4 * 1024
+	case fileSize < 1*1024*1024: // до 1 МБ
+		return 64 * 1024
+	case fileSize < 100*1024*1024: // до 100 МБ
+		return 256 * 1024
+	case fileSize < 1*1024*1024*1024: // до 1 ГБ
+		return 512 * 1024
+	default:
+		return 1024 * 1024 // 1 МБ
+	}
+}
+
 func Copy(fromPath, toPath string, offset, limit int64) error {
 	file, err := os.Open(fromPath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	// Получаем информацию о файле
+
 	info, err := file.Stat()
 	if err != nil {
 		return err
@@ -52,9 +68,10 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 	}
 	defer dst.Close()
 
-	bufSize := 1 * 1024
+	bufSize := optimalBufferSize(toCopy)
 	buf := make([]byte, bufSize)
 	var copied int64
+	start := time.Now()
 
 	for copied < toCopy {
 		readSize := bufSize
@@ -72,9 +89,7 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 				return io.ErrShortWrite
 			}
 			copied += int64(written)
-			// Прогресс-бар (простой):
-			time.Sleep(time.Millisecond * 300)
-			printProgress(copied, toCopy)
+			printProgress(copied, toCopy, start)
 		}
 		if readErr == io.EOF {
 			break
@@ -83,12 +98,13 @@ func Copy(fromPath, toPath string, offset, limit int64) error {
 			return readErr
 		}
 	}
-	println()
+	printProgress(toCopy, toCopy, start)
+	fmt.Println()
 	return nil
 }
 
-func printProgress(done, total int64) {
-	start := time.Now()
+// Функция отображения прогресс-бара
+func printProgress(done, total int64, start time.Time) {
 	if total == 0 {
 		fmt.Print("\r\033[32m[████████████████████████████████████████] 100%\033[0m")
 		return
@@ -105,7 +121,7 @@ func printProgress(done, total int64) {
 	gray := "\033[90m"
 	reset := "\033[0m"
 
-	bar := green + "█" + strings.Repeat("█", filled-1)
+	bar := green + strings.Repeat("█", filled)
 	if filled < barWidth {
 		bar += blue + ">" + gray + strings.Repeat("░", barWidth-filled-1)
 	}
