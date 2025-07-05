@@ -65,7 +65,9 @@ func ReadDir(dir string) (Environment, error) {
 		} else {
 			// Если файл пустой, переменная должна быть удалена (NeedRemove = true)
 			if err := scanner.Err(); err != nil {
-				f.Close()
+				if cerr := f.Close(); cerr != nil {
+					return nil, fmt.Errorf("ошибка при чтении файла %s: %v; также не удалось закрыть файл: %w", fullPath, err, cerr)
+				}
 				return nil, fmt.Errorf("ошибка при чтении файла %s: %w", fullPath, err)
 			}
 			val = ""

@@ -9,6 +9,7 @@ import (
 	"testing"
 )
 
+// TestRunCmd проверяет корректную работу функции RunCmd с передачей переменных окружения и аргументов.
 func TestRunCmd(t *testing.T) {
 	// Создаём временную директорию для тестового скрипта
 	dir := t.TempDir()
@@ -33,10 +34,7 @@ func TestRunCmd(t *testing.T) {
 		t.Fatalf("Не удалось записать скрипт: %v", err)
 	}
 
-	// Формируем окружение для теста:
-	// - FOO и BAR устанавливаются
-	// - EMPTY устанавливается как пустая строка
-	// - UNSET удаляется из окружения
+	// Формируем окружение для теста
 	env := Environment{
 		"FOO":   EnvValue{"foo", false},
 		"BAR":   EnvValue{"bar", false},
@@ -57,8 +55,10 @@ func TestRunCmd(t *testing.T) {
 	// Запускаем команду с нужным окружением
 	code := RunCmd(cmd, env)
 
-	// Закрываем pipe и возвращаем stdout/stderr обратно
-	w.Close()
+	// Закрываем pipe и проверяем ошибку закрытия (важно для линтера errcheck)
+	if err := w.Close(); err != nil {
+		t.Fatalf("ошибка при закрытии pipe: %v", err)
+	}
 	os.Stdout = oldStdout
 	os.Stderr = oldStderr
 
@@ -70,7 +70,6 @@ func TestRunCmd(t *testing.T) {
 	if code != 0 {
 		t.Errorf("Ожидался код возврата 0, получено %d", code)
 	}
-	// Проверяем, что в выводе есть все нужные переменные и аргументы
 	if !strings.Contains(output, "FOO=foo") {
 		t.Errorf("В выводе не найдено FOO: %q", output)
 	}
