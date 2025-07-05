@@ -41,12 +41,15 @@ func main() {
 	done := make(chan struct{})
 	var once sync.Once
 
-	go func() {
-		_ = client.Receive()
-		once.Do(func() { close(done) })
-	}()
+	// Горутина для чтения из stdin и отправки на сервер
 	go func() {
 		_ = client.Send()
+		once.Do(func() { close(done) })
+	}()
+
+	// Горутина для чтения из сервера и вывода в stdout
+	go func() {
+		_ = client.Receive()
 		once.Do(func() { close(done) })
 	}()
 
