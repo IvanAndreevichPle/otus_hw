@@ -2,13 +2,12 @@ package hw09structvalidator
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"testing"
 )
 
 type UserRole string
 
-// Test the function on different structures and other types.
 type (
 	User struct {
 		ID     string `json:"id" validate:"len:36"`
@@ -38,23 +37,61 @@ type (
 
 func TestValidate(t *testing.T) {
 	tests := []struct {
+		name        string
 		in          interface{}
 		expectedErr error
 	}{
 		{
-			// Place your code here.
+			name: "valid user",
+			in: User{
+				ID:     "123e4567-e89b-12d3-a456-426614174000",
+				Age:    25,
+				Email:  "test@example.com",
+				Role:   "admin",
+				Phones: []string{"12345678901"},
+			},
+			expectedErr: nil,
 		},
-		// ...
-		// Place your code here.
+		{
+			name: "invalid user - age too low",
+			in: User{
+				ID:     "123e4567-e89b-12d3-a456-426614174000",
+				Age:    15,
+				Email:  "test@example.com",
+				Role:   "admin",
+				Phones: []string{"12345678901"},
+			},
+			expectedErr: ValidationErrors{},
+		},
+		{
+			name:        "not a struct",
+			in:          "not a struct",
+			expectedErr: ErrNotStruct,
+		},
 	}
 
-	for i, tt := range tests {
-		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
-			tt := tt
-			t.Parallel()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Validate(tt.in)
 
-			// Place your code here.
-			_ = tt
+			if tt.expectedErr == nil {
+				if err != nil {
+					t.Errorf("expected no error, got %v", err)
+				}
+				return
+			}
+
+			if errors.Is(tt.expectedErr, ErrNotStruct) {
+				if !errors.Is(err, ErrNotStruct) {
+					t.Errorf("expected ErrNotStruct, got %v", err)
+				}
+				return
+			}
+
+			var valErrs ValidationErrors
+			if !errors.As(err, &valErrs) {
+				t.Errorf("expected ValidationErrors, got %v", err)
+			}
 		})
 	}
 }
