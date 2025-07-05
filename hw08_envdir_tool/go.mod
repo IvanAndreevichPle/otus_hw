@@ -1,3 +1,3 @@
-module go-envdir
+module github.com/IvanAndreevichPle/hw08_envdir_tool
 
-go 1.24.2
+go 1.23
