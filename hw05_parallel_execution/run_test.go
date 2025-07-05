@@ -68,3 +68,39 @@ func TestRun(t *testing.T) {
 		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
 	})
 }
+
+func TestRunConcurrency(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
+	t.Run("check concurrency without sleeps", func(t *testing.T) {
+		const workers = 3
+		tasks := make([]Task, workers*2)
+		block := make(chan struct{})
+		var activeWorkers atomic.Int32
+
+		for i := range tasks {
+			tasks[i] = func() error {
+				activeWorkers.Add(1)
+				defer activeWorkers.Add(-1)
+				<-block
+				return nil
+			}
+		}
+
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			close(block)
+		}()
+
+		errCh := make(chan error)
+		go func() {
+			errCh <- Run(tasks, workers, 0)
+		}()
+
+		require.Eventually(t, func() bool {
+			return activeWorkers.Load() == int32(workers)
+		}, time.Second, 10*time.Millisecond, "workers did not run concurrently")
+
+		require.NoError(t, <-errCh)
+	})
+}
