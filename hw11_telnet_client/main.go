@@ -27,7 +27,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "...Connection error: %v\n", err)
 		os.Exit(1)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "close error: %v\n", err)
+		}
+	}()
 	fmt.Fprintf(os.Stderr, "...Connected to %s\n", address)
 
 	// Обработка SIGINT (Ctrl+C)
