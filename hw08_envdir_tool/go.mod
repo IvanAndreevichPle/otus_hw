@@ -1,3 +1,3 @@
-module github.com/fixme_my_friend/hw08_envdir_tool
+module go-envdir
 
-go 1.23
+go 1.24.2
