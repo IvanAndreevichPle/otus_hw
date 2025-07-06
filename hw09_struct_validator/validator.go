@@ -36,10 +36,15 @@ func (v ValidationErrors) Error() string {
 	return strings.Join(msgs, "; ")
 }
 
+// isDeveloperError определяет, является ли ошибка ошибкой программиста.
+func isDeveloperError(err error) bool {
+	return errors.Is(err, ErrInvalidTag) || errors.Is(err, ErrInvalidRegexp)
+}
+
+// Validate проверяет структуру на соответствие правилам валидации.
 func Validate(v interface{}) error {
 	rv := reflect.ValueOf(v)
 
-	// Проверяем, что это структура
 	if rv.Kind() != reflect.Struct {
 		return ErrNotStruct
 	}
@@ -47,29 +52,26 @@ func Validate(v interface{}) error {
 	rt := reflect.TypeOf(v)
 	var validationErrors ValidationErrors
 
-	// Проходим по всем полям структуры
 	for i := 0; i < rv.NumField(); i++ {
 		field := rt.Field(i)
 		fieldValue := rv.Field(i)
 
-		// Пропускаем приватные поля
 		if !field.IsExported() {
 			continue
 		}
 
-		// Получаем тег validate
 		validateTag := field.Tag.Get("validate")
 		if validateTag == "" {
 			continue
 		}
 
-		// Обрабатываем вложенные структуры
+		// Вложенные структуры
 		if validateTag == "nested" {
 			if fieldValue.Kind() == reflect.Struct {
-				if err := Validate(fieldValue.Interface()); err != nil {
+				err := Validate(fieldValue.Interface())
+				if err != nil {
 					var valErrs ValidationErrors
 					if errors.As(err, &valErrs) {
-						// Добавляем префикс к именам полей
 						for _, valErr := range valErrs {
 							validationErrors = append(validationErrors, ValidationError{
 								Field: field.Name + "." + valErr.Field,
@@ -77,20 +79,20 @@ func Validate(v interface{}) error {
 							})
 						}
 					} else {
-						return err // Программная ошибка
+						return err // Ошибка программиста
 					}
 				}
 			}
 			continue
 		}
 
-		// Валидируем поле
-		if err := validateField(field.Name, fieldValue, validateTag); err != nil {
+		err := validateField(field.Name, fieldValue, validateTag)
+		if err != nil {
 			var valErrs ValidationErrors
 			if errors.As(err, &valErrs) {
 				validationErrors = append(validationErrors, valErrs...)
 			} else {
-				return err // Программная ошибка
+				return err // Ошибка программиста
 			}
 		}
 	}
@@ -105,7 +107,6 @@ func Validate(v interface{}) error {
 func validateField(fieldName string, fieldValue reflect.Value, tag string) error {
 	var validationErrors ValidationErrors
 
-	// Разделяем правила по |
 	rules := strings.Split(tag, "|")
 
 	for _, rule := range rules {
@@ -119,24 +120,44 @@ func validateField(fieldName string, fieldValue reflect.Value, tag string) error
 		switch fieldValue.Kind() {
 		case reflect.String:
 			err = validateString(fieldValue.String(), rule)
-		case reflect.Int:
-			err = validateInt(int(fieldValue.Int()), rule)
-		case reflect.Slice:
-			err = validateSlice(fieldValue, rule)
-		default:
-			return fmt.Errorf("%w: unsupported field type %s", ErrInvalidTag, fieldValue.Kind())
-		}
-
-		if err != nil {
-			var valErrs ValidationErrors
-			if errors.As(err, &valErrs) {
-				validationErrors = append(validationErrors, valErrs...)
-			} else {
+			if err != nil {
+				if isDeveloperError(err) {
+					return err
+				}
 				validationErrors = append(validationErrors, ValidationError{
 					Field: fieldName,
 					Err:   err,
 				})
 			}
+		case reflect.Int:
+			err = validateInt(int(fieldValue.Int()), rule)
+			if err != nil {
+				if isDeveloperError(err) {
+					return err
+				}
+				validationErrors = append(validationErrors, ValidationError{
+					Field: fieldName,
+					Err:   err,
+				})
+			}
+		case reflect.Slice:
+			err = validateSlice(fieldName, fieldValue, rule)
+			if err != nil {
+				if isDeveloperError(err) {
+					return err
+				}
+				var valErrs ValidationErrors
+				if errors.As(err, &valErrs) {
+					validationErrors = append(validationErrors, valErrs...)
+				} else {
+					validationErrors = append(validationErrors, ValidationError{
+						Field: fieldName,
+						Err:   err,
+					})
+				}
+			}
+		default:
+			return fmt.Errorf("%w: unsupported field type %s", ErrInvalidTag, fieldValue.Kind())
 		}
 	}
 
@@ -166,7 +187,6 @@ func validateString(value, rule string) error {
 		}
 
 	case "regexp":
-		// Убираем экранирование
 		pattern := strings.ReplaceAll(ruleValue, "\\\\", "\\")
 		regex, err := regexp.Compile(pattern)
 		if err != nil {
@@ -247,7 +267,7 @@ func validateInt(value int, rule string) error {
 	return nil
 }
 
-func validateSlice(sliceValue reflect.Value, rule string) error {
+func validateSlice(fieldName string, sliceValue reflect.Value, rule string) error {
 	var validationErrors ValidationErrors
 
 	for i := 0; i < sliceValue.Len(); i++ {
@@ -264,8 +284,11 @@ func validateSlice(sliceValue reflect.Value, rule string) error {
 		}
 
 		if err != nil {
+			if isDeveloperError(err) {
+				return err
+			}
 			validationErrors = append(validationErrors, ValidationError{
-				Field: fmt.Sprintf("[%d]", i),
+				Field: fmt.Sprintf("%s[%d]", fieldName, i),
 				Err:   err,
 			})
 		}

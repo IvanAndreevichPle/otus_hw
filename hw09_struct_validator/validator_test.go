@@ -95,3 +95,28 @@ func TestValidate(t *testing.T) {
 		})
 	}
 }
+func TestValidate_DeveloperErrors(t *testing.T) {
+	type BadStruct struct {
+		Data map[string]string `validate:"len:5"`
+	}
+	err := Validate(BadStruct{Data: map[string]string{"a": "b"}})
+	if !errors.Is(err, ErrInvalidTag) {
+		t.Errorf("expected ErrInvalidTag for map, got %v", err)
+	}
+
+	type BadTag struct {
+		Name string `validate:"unknown:5"`
+	}
+	err = Validate(BadTag{Name: "test"})
+	if !errors.Is(err, ErrInvalidTag) {
+		t.Errorf("expected ErrInvalidTag for unknown rule, got %v", err)
+	}
+
+	type BadRegexp struct {
+		Email string `validate:"regexp:([)"`
+	}
+	err = Validate(BadRegexp{Email: "test"})
+	if !errors.Is(err, ErrInvalidRegexp) {
+		t.Errorf("expected ErrInvalidRegexp, got %v", err)
+	}
+}
