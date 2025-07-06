@@ -99,14 +99,32 @@ func (e *errReader) Read(p []byte) (int, error) { return 0, io.ErrUnexpectedEOF 
 func (e *errReader) Close() error               { return nil }
 
 func TestTelnetClient_SendWithError(t *testing.T) {
-	l, _ := net.Listen("tcp", "127.0.0.1:")
-	defer l.Close()
-	go l.Accept()
+	l, err := net.Listen("tcp", "127.0.0.1:")
+	require.NoError(t, err)
+	defer func() {
+		err := l.Close()
+		require.NoError(t, err)
+	}()
+
+	done := make(chan struct{})
+	go func() {
+		conn, err := l.Accept()
+		require.NoError(t, err)
+		err = conn.Close()
+		require.NoError(t, err)
+		close(done)
+	}()
+
 	client := NewTelnetClient(l.Addr().String(), time.Second, &errReader{}, &bytes.Buffer{})
 	require.NoError(t, client.Connect())
-	defer client.Close()
-	err := client.Send()
+	defer func() {
+		err := client.Close()
+		require.NoError(t, err)
+	}()
+
+	err = client.Send()
 	require.Error(t, err)
+	<-done
 }
 
 // --- Тест: ошибка при записи в out (Receive)
@@ -114,22 +132,32 @@ type errWriter struct{}
 
 func (e *errWriter) Write(p []byte) (int, error) { return 0, io.ErrClosedPipe }
 func TestTelnetClient_ReceiveWithError(t *testing.T) {
-	l, _ := net.Listen("tcp", "127.0.0.1:")
-	defer l.Close()
-	done := make(chan struct{})
+	l, err := net.Listen("tcp", "127.0.0.1:")
+	require.NoError(t, err)
+	defer func() {
+		err := l.Close()
+		require.NoError(t, err)
+	}()
 
-	// Сервер: отправляет байт и закрывает соединение
+	done := make(chan struct{})
 	go func() {
-		conn, _ := l.Accept()
-		conn.Write([]byte("x")) // отправляем 1 байт
-		conn.Close()
+		conn, err := l.Accept()
+		require.NoError(t, err)
+		n, err := conn.Write([]byte("x")) // отправляем 1 байт
+		require.NoError(t, err)
+		require.Equal(t, 1, n)
+		err = conn.Close()
+		require.NoError(t, err)
 		close(done)
 	}()
 
 	client := NewTelnetClient(l.Addr().String(), time.Second, io.NopCloser(&bytes.Buffer{}), &errWriter{})
 	require.NoError(t, client.Connect())
-	defer client.Close()
-	err := client.Receive()
+	defer func() {
+		err := client.Close()
+		require.NoError(t, err)
+	}()
+	err = client.Receive()
 	require.Error(t, err)
 	<-done
 }
