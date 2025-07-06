@@ -24,6 +24,7 @@ func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 	result := make(DomainStat)
 	scanner := bufio.NewScanner(r)
 	domain = strings.ToLower(domain)
+	suffix := "." + domain
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
@@ -37,13 +38,8 @@ func GetDomainStat(r io.Reader, domain string) (DomainStat, error) {
 			continue
 		}
 		dom := email[at+1:]
-		if strings.HasSuffix(dom, "."+domain) {
-			dot := strings.LastIndex(dom, ".")
-			if dot == -1 {
-				continue
-			}
-			domName := dom[:dot]
-			result[domName+"."+domain]++
+		if strings.HasSuffix(dom, suffix) {
+			result[dom]++
 		}
 	}
 	if err := scanner.Err(); err != nil {
