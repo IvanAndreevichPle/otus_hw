@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"net"
 	"time"
@@ -20,6 +21,8 @@ type telnetClient struct {
 	out     io.Writer
 	conn    net.Conn
 }
+
+var ErrNotConnected = errors.New("not connected")
 
 func NewTelnetClient(address string, timeout time.Duration, in io.ReadCloser, out io.Writer) TelnetClient {
 	return &telnetClient{
@@ -47,11 +50,17 @@ func (c *telnetClient) Close() error {
 }
 
 func (c *telnetClient) Send() error {
+	if c.conn == nil {
+		return ErrNotConnected
+	}
 	_, err := io.Copy(c.conn, c.in)
 	return err
 }
 
 func (c *telnetClient) Receive() error {
+	if c.conn == nil {
+		return ErrNotConnected
+	}
 	_, err := io.Copy(c.out, c.conn)
 	return err
 }
