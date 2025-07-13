@@ -1,3 +1,4 @@
+//go:build !bench
 // +build !bench
 
 package hw10programoptimization
@@ -36,4 +37,57 @@ func TestGetDomainStat(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, DomainStat{}, result)
 	})
+}
+
+// Пустой ввод
+func TestGetDomainStat_EmptyInput(t *testing.T) {
+	result, err := GetDomainStat(bytes.NewBufferString(""), "com")
+	require.NoError(t, err)
+	require.Equal(t, DomainStat{}, result)
+}
+
+// Строка без поля Email
+func TestGetDomainStat_NoEmailField(t *testing.T) {
+	data := `{"Id":1,"Name":"Test User"}`
+	result, err := GetDomainStat(bytes.NewBufferString(data), "com")
+	require.NoError(t, err)
+	require.Equal(t, DomainStat{}, result)
+}
+
+// Некорректный JSON
+func TestGetDomainStat_InvalidJSON(t *testing.T) {
+	data := `{"Id":1,"Email":"user@site.com"`
+	result, err := GetDomainStat(bytes.NewBufferString(data), "com")
+	require.NoError(t, err)
+	require.Equal(t, DomainStat{"site.com": 1}, result)
+}
+
+// Email без символа @
+func TestGetDomainStat_EmailNoAt(t *testing.T) {
+	data := `{"Email":"invalidemail.com"}`
+	result, err := GetDomainStat(bytes.NewBufferString(data), "com")
+	require.NoError(t, err)
+	require.Equal(t, DomainStat{}, result)
+}
+
+// Email с верхним регистром в домене
+func TestGetDomainStat_EmailUpperCaseDomain(t *testing.T) {
+	data := `{"Email":"user@Example.Com"}`
+	result, err := GetDomainStat(bytes.NewBufferString(data), "com")
+	require.NoError(t, err)
+	require.Equal(t, DomainStat{"example.com": 1}, result)
+}
+
+// Несколько строк, смешанные валидные и невалидные
+func TestGetDomainStat_MixedValidInvalid(t *testing.T) {
+	data := `
+{"Email":"user1@site.com"}
+{"Id":2,"Name":"NoEmail"}
+{"Email":"user2@site.com"}
+invalid_json
+{"Email":"user3@site.org"}
+`
+	result, err := GetDomainStat(bytes.NewBufferString(data), "com")
+	require.NoError(t, err)
+	require.Equal(t, DomainStat{"site.com": 2}, result)
 }
