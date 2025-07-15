@@ -1,0 +1,26 @@
+# Docker Compose конфигурация только для базы данных PostgreSQL
+# Используется для разработки и тестирования
+version: '3.8'
+services:
+  # Сервис PostgreSQL для хранения данных
+  postgres:
+    image: postgres:15
+    container_name: calendar-postgres
+    environment:
+      POSTGRES_USER: calendar      # пользователь базы данных
+      POSTGRES_PASSWORD: calendar  # пароль пользователя
+      POSTGRES_DB: calendar        # имя базы данных по умолчанию
+    ports:
+      - "5432:5432"                # проброс порта PostgreSQL
+    restart: unless-stopped        # автоматический перезапуск
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # постоянное хранение данных
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calendar"]  # проверка готовности БД
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+# Именованные тома для постоянного хранения данных
+volumes:
+  pgdata:  # том для данных PostgreSQL 
