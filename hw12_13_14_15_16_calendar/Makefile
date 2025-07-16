@@ -64,8 +64,11 @@ test:
 install-lint-deps:
 	(which golangci-lint > /dev/null) || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.57.2
 
+mod-download:
+	go mod download
+
 # Запуск линтера для проверки качества кода
-lint: install-lint-deps
+lint: mod-download install-lint-deps
 	golangci-lint run ./...
 
 # Объявление phony targets (целей, которые не являются файлами)
