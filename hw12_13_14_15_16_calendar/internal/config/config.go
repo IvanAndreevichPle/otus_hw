@@ -4,7 +4,7 @@ package config
 import (
 	"os"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // Config описывает структуру основного конфига приложения.
