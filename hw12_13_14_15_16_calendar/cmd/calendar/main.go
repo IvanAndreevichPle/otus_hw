@@ -13,12 +13,12 @@ import (
 
 	"database/sql"
 
-	"github.com/IvanAndreevichPle/hw12_13_14_15_calendar/internal/app"
-	"github.com/IvanAndreevichPle/hw12_13_14_15_calendar/internal/config"
-	"github.com/IvanAndreevichPle/hw12_13_14_15_calendar/internal/logger"
-	internalhttp "github.com/IvanAndreevichPle/hw12_13_14_15_calendar/internal/server/http"
-	memorystorage "github.com/IvanAndreevichPle/hw12_13_14_15_calendar/internal/storage/memory"
-	sqlstorage "github.com/IvanAndreevichPle/hw12_13_14_15_calendar/internal/storage/sql"
+	"github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/app"
+	"github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/config"
+	"github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/logger"
+	internalhttp "github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/server/http"
+	memorystorage "github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/storage/memory"
+	sqlstorage "github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/storage/sql"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 )

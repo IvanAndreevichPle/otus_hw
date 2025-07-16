@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/IvanAndreevichPle/hw12_13_14_15_calendar/internal/storage"
+	"github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/storage"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 )

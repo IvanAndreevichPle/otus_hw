@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/IvanAndreevichPle/hw12_13_14_15_calendar/internal/storage"
+	"github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/storage"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
