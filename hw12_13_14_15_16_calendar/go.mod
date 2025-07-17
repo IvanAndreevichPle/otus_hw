@@ -2,8 +2,6 @@ module github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar
 
 go 1.23.0
 
-toolchain go1.24.2
-
 require (
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
