@@ -91,10 +91,9 @@ jobs:
       - name: Create test database
         run: |
           sudo apt-get update && sudo apt-get install -y postgresql-client
-          psql postgresql://calendar:calendarpassword@localhost:5432/calendar -c 'CREATE DATABASE calendar_test;'
+          psql postgresql://calendar:calendar@localhost:5432/calendar -c 'CREATE DATABASE calendar_test;'
         env:
-          PGPASSWORD: calendarpassword
-
+          PGPASSWORD: calendar
       - name: make lint
         run: make lint
         working-directory: hw12_13_14_15_16_calendar
