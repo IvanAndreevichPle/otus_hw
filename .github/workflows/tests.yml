@@ -71,9 +71,9 @@ jobs:
         ports:
           - 5432:5432
         env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpass
-          POSTGRES_DB: calendar_test
+          POSTGRES_USER: calendar
+          POSTGRES_PASSWORD: calendar
+          POSTGRES_DB: calendar
         options: >-
           --health-cmd="pg_isready -U testuser"
           --health-interval=10s
@@ -102,6 +102,6 @@ jobs:
         env:
           DB_HOST: localhost
           DB_PORT: 5432
-          DB_USER: testuser
-          DB_PASSWORD: testpass
+          DB_USER: calendar
+          DB_PASSWORD: calendar
           DB_NAME: calendar_test
