@@ -65,6 +65,20 @@ jobs:
   tests_by_makefile:
     runs-on: ubuntu-latest
     if: contains(github.ref, 'calendar')
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: calendar_test
+        options: >-
+          --health-cmd="pg_isready -U testuser"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     steps:
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -85,3 +99,9 @@ jobs:
       - name: make test
         run: make test
         working-directory: hw12_13_14_15_16_calendar
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: testuser
+          DB_PASSWORD: testpass
+          DB_NAME: calendar_test
