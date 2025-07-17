@@ -67,7 +67,7 @@ jobs:
     if: contains(github.ref, 'calendar')
     services:
       postgres:
-        image: postgres:13
+        image: postgres:15
         env:
           POSTGRES_DB: calendar
           POSTGRES_USER: calendar
