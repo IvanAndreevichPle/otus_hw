@@ -69,7 +69,7 @@ mod-download:
 
 # Запуск линтера для проверки качества кода
 lint: mod-download install-lint-deps
-	golangci-lint run --concurrency=1 ./...
+	golangci-lint run ./...
 
 # Генерация Go-кода из Protobuf-спецификаций
 
