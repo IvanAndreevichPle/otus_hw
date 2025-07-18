@@ -25,9 +25,7 @@ func startTestGRPCServer(t *testing.T) (pb.EventServiceClient, func()) {
 	pb.RegisterEventServiceServer(s, grpcserver.NewServer(appInstance))
 
 	go func() {
-		if err := s.Serve(lis); err != nil {
-			t.Logf("gRPC server stopped: %v", err)
-		}
+		_ = s.Serve(lis)
 	}()
 
 	ctxDial, cancel := context.WithTimeout(context.Background(), 2*time.Second)

@@ -7,6 +7,9 @@ import (
 	pb "github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/api/gen"
 	"github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/app"
 	"github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/storage"
+	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Server реализует pb.EventServiceServer и связывает GRPC с бизнес-логикой.
@@ -23,6 +26,11 @@ func NewServer(app *app.App) *Server {
 // CreateEvent реализует метод создания события через GRPC.
 func (s *Server) CreateEvent(ctx context.Context, req *pb.CreateEventRequest) (*pb.CreateEventResponse, error) {
 	event := req.GetEvent()
+	// Валидация UUID
+	if _, err := uuid.Parse(event.GetId()); err != nil {
+		s.app.Logger().Error("CreateEvent error: invalid UUID")
+		return nil, status.Errorf(codes.InvalidArgument, "invalid UUID: %v", err)
+	}
 	// Логирование
 	s.app.Logger().Info("GRPC CreateEvent: " + event.GetTitle())
 
