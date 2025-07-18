@@ -71,5 +71,10 @@ mod-download:
 lint: mod-download install-lint-deps
 	golangci-lint run ./...
 
+# Генерация Go-кода из Protobuf-спецификаций
+
+generate:
+	cd api && go generate gen.go
+
 # Объявление phony targets (целей, которые не являются файлами)
-.PHONY: build run build-img run-img version test lint db-up db-down db-down-clean db-create-test test-with-db
+.PHONY: build run build-img run-img version test lint db-up db-down db-down-clean db-create-test test-with-db generate

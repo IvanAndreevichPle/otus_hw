@@ -63,3 +63,41 @@ func (a *App) GetEvent(ctx context.Context, id string) (storage.Event, error) {
 func (a *App) ListEvents(ctx context.Context, userID string) ([]storage.Event, error) {
 	return a.storage.ListEvents(ctx, userID)
 }
+
+// ListEventsForPeriod возвращает события пользователя в заданном диапазоне времени (Unix timestamp).
+func (a *App) ListEventsForPeriod(ctx context.Context, userID string, start, end int64) ([]storage.Event, error) {
+	events, err := a.ListEvents(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	var filtered []storage.Event
+	for _, ev := range events {
+		if ev.StartTime >= start && ev.StartTime < end {
+			filtered = append(filtered, ev)
+		}
+	}
+	return filtered, nil
+}
+
+// ListEventsForDay возвращает события пользователя за день.
+func (a *App) ListEventsForDay(ctx context.Context, userID string, dayStart int64) ([]storage.Event, error) {
+	const daySec = 24 * 60 * 60
+	return a.ListEventsForPeriod(ctx, userID, dayStart, dayStart+daySec)
+}
+
+// ListEventsForWeek возвращает события пользователя за неделю.
+func (a *App) ListEventsForWeek(ctx context.Context, userID string, weekStart int64) ([]storage.Event, error) {
+	const weekSec = 7 * 24 * 60 * 60
+	return a.ListEventsForPeriod(ctx, userID, weekStart, weekStart+weekSec)
+}
+
+// ListEventsForMonth возвращает события пользователя за месяц (30 дней).
+func (a *App) ListEventsForMonth(ctx context.Context, userID string, monthStart int64) ([]storage.Event, error) {
+	const monthSec = 30 * 24 * 60 * 60
+	return a.ListEventsForPeriod(ctx, userID, monthStart, monthStart+monthSec)
+}
+
+// Logger возвращает логгер приложения.
+func (a *App) Logger() Logger {
+	return a.logger
+}
