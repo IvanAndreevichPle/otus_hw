@@ -1,0 +1,44 @@
+# Docker Compose конфигурация для приложения Календарь
+# Определяет два сервиса: PostgreSQL и само приложение
+version: '3.8'
+services:
+  # Сервис PostgreSQL для хранения данных
+  postgres:
+    image: postgres:15
+    container_name: calendar-postgres
+    environment:
+      POSTGRES_USER: calendar      # пользователь базы данных
+      POSTGRES_PASSWORD: calendar  # пароль пользователя
+      POSTGRES_DB: calendar        # имя базы данных
+    ports:
+      - "5432:5432"                # проброс порта PostgreSQL
+    restart: unless-stopped        # автоматический перезапуск
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # постоянное хранение данных
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calendar"]  # проверка готовности БД
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Основное приложение Календарь
+  calendar-app:
+    build:
+      context: .                           # контекст сборки
+      dockerfile: ./build/Dockerfile       # путь к Dockerfile
+    container_name: calendar-app
+    depends_on:
+      postgres:
+        condition: service_healthy         # ждем готовности PostgreSQL
+    environment:
+      CONFIG_FILE: /etc/calendar/config.yaml  # путь к конфигурации
+    volumes:
+      - ./configs/config.yaml:/etc/calendar/config.yaml:ro  # монтируем конфиг
+      - ./migrations:/migrations:ro        # монтируем миграции
+    ports:
+      - "8080:8080"                        # проброс порта HTTP API
+    restart: unless-stopped                # автоматический перезапуск
+
+# Именованные тома для постоянного хранения данных
+volumes:
+  pgdata:  # том для данных PostgreSQL 

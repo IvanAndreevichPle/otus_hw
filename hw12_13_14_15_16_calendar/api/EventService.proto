@@ -1,7 +1,98 @@
+//go:generate protoc --go_out=../gen --go-grpc_out=../gen --go_opt=paths=source_relative --go-grpc_opt=paths=source_relative EventService.proto
+
 syntax = "proto3";
 
 package event;
 
+option go_package = "github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/api/gen;event";
+
+import "google/api/annotations.proto";
+
+// Event — основная сущность календаря
 message Event {
-    // TODO
+    string id = 1; // UUID события
+    string title = 2; // Заголовок
+    string start_time = 3; // Дата и время начала (RFC3339)
+    int64 duration_seconds = 4; // Длительность в секундах
+    string description = 5; // Описание (опционально)
+    string user_id = 6; // ID пользователя
+    int32 notify_before_minutes = 7; // За сколько минут уведомлять (опционально)
+}
+
+// Запрос на создание события
+message CreateEventRequest {
+    Event event = 1;
+}
+
+// Ответ с созданным событием
+message CreateEventResponse {
+    Event event = 1;
+}
+
+// Запрос на обновление события
+message UpdateEventRequest {
+    Event event = 1;
+}
+
+// Ответ на обновление события
+message UpdateEventResponse {
+    Event event = 1;
+}
+
+// Запрос на удаление события
+message DeleteEventRequest {
+    string id = 1;
+    string user_id = 2;
+}
+
+// Ответ на удаление события
+message DeleteEventResponse {
+    bool success = 1;
+}
+
+// Запрос на получение событий за период
+message ListEventsRequest {
+    string user_id = 1;
+    string period_start = 2; // начало периода (RFC3339)
+    string period_end = 3;   // конец периода (RFC3339)
+}
+
+// Ответ со списком событий
+message ListEventsResponse {
+    repeated Event events = 1;
+}
+
+service EventService {
+    rpc CreateEvent(CreateEventRequest) returns (CreateEventResponse) {
+        option (google.api.http) = {
+            post: "/v1/events"
+            body: "event"
+        };
+    }
+    rpc UpdateEvent(UpdateEventRequest) returns (UpdateEventResponse) {
+        option (google.api.http) = {
+            put: "/v1/events/{event.id}"
+            body: "event"
+        };
+    }
+    rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse) {
+        option (google.api.http) = {
+            delete: "/v1/events/{id}"
+        };
+    }
+    rpc ListEventsForDay(ListEventsRequest) returns (ListEventsResponse) {
+        option (google.api.http) = {
+            get: "/v1/events/day"
+        };
+    }
+    rpc ListEventsForWeek(ListEventsRequest) returns (ListEventsResponse) {
+        option (google.api.http) = {
+            get: "/v1/events/week"
+        };
+    }
+    rpc ListEventsForMonth(ListEventsRequest) returns (ListEventsResponse) {
+        option (google.api.http) = {
+            get: "/v1/events/month"
+        };
+    }
 }
