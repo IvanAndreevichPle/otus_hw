@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"fmt"
 	"os"
@@ -14,12 +15,20 @@ import (
 	"github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/config"
 	"github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/logger"
 	"github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/queue"
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
+	"github.com/pressly/goose/v3"
 )
 
-var configFile string
+var (
+	configFile    string
+	migrationsPath string
+)
 
 func init() {
 	flag.StringVar(&configFile, "config", "configs/sender_config.yaml", "Path to configuration file")
+	flag.StringVar(&migrationsPath, "migrations", "migrations", "Path to migrations directory")
 }
 
 func main() {
@@ -33,6 +42,26 @@ func main() {
 
 	// Инициализация логгера
 	logg := logger.New(cfg.Logger.Level)
+
+	// Подключение к базе данных для сохранения статуса уведомлений
+	var db *sqlx.DB
+	if cfg.DB.Host != "" {
+		dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+			cfg.DB.Host, cfg.DB.Port, cfg.DB.User, cfg.DB.Password, cfg.DB.DBName)
+
+		sqlDB, err := sql.Open("postgres", dsn)
+		if err != nil {
+			panic("failed to connect to db: " + err.Error())
+		}
+		defer func() { _ = sqlDB.Close() }()
+
+		// Применение миграций
+		if err := goose.Up(sqlDB, migrationsPath); err != nil {
+			logg.Warn("failed to apply migrations: " + err.Error())
+		}
+
+		db = sqlx.NewDb(sqlDB, "postgres")
+	}
 
 	// Подключение к RabbitMQ
 	rabbitURL := queue.BuildURL(
@@ -77,6 +106,21 @@ func main() {
 	// Обработчик уведомлений
 	handler := func(notification queue.Notification) error {
 		eventTime := time.Unix(notification.EventTime, 0).Format(time.RFC3339)
+		now := time.Now().Unix()
+
+		// Сохраняем статус уведомления в БД (если БД доступна)
+		if db != nil {
+			notificationID := uuid.New().String()
+			_, err := db.ExecContext(ctx,
+				`INSERT INTO notifications (id, event_id, user_id, title, event_time, status, created_at, processed_at) 
+				 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+				notificationID, notification.EventID, notification.UserID, notification.Title,
+				notification.EventTime, "processed", now, now)
+			if err != nil {
+				logg.Error(fmt.Sprintf("failed to save notification status: %v", err))
+				// Продолжаем обработку даже если не удалось сохранить в БД
+			}
+		}
 
 		// Вывод уведомления в STDOUT (как требуется в задании)
 		fmt.Printf("[NOTIFICATION] Event: %s | Title: %s | User: %s | Time: %s\n",

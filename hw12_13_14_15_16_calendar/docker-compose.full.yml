@@ -1,44 +1,124 @@
-# Docker Compose конфигурация для приложения Календарь
-# Определяет два сервиса: PostgreSQL и само приложение
+# Docker Compose конфигурация для полного запуска всех сервисов Календаря
+# Включает: PostgreSQL, RabbitMQ, Calendar API, Scheduler, Sender
 version: '3.8'
+
 services:
   # Сервис PostgreSQL для хранения данных
   postgres:
     image: postgres:15
     container_name: calendar-postgres
     environment:
-      POSTGRES_USER: calendar      # пользователь базы данных
-      POSTGRES_PASSWORD: calendar  # пароль пользователя
-      POSTGRES_DB: calendar        # имя базы данных
+      POSTGRES_USER: calendar
+      POSTGRES_PASSWORD: calendar
+      POSTGRES_DB: calendar
     ports:
-      - "5432:5432"                # проброс порта PostgreSQL
-    restart: unless-stopped        # автоматический перезапуск
+      - "5432:5432"
+    restart: unless-stopped
     volumes:
-      - pgdata:/var/lib/postgresql/data  # постоянное хранение данных
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U calendar"]  # проверка готовности БД
+      test: ["CMD-SHELL", "pg_isready -U calendar"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - calendar-network
 
-  # Основное приложение Календарь
-  calendar-app:
+  # Сервис RabbitMQ для очереди сообщений
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: calendar-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: calendar
+      RABBITMQ_DEFAULT_PASS: calendar
+    ports:
+      - "5672:5672"    # AMQP порт
+      - "15672:15672"  # Web UI порт
+    restart: unless-stopped
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - calendar-network
+
+  # API сервис Календарь
+  calendar:
     build:
-      context: .                           # контекст сборки
-      dockerfile: ./build/Dockerfile       # путь к Dockerfile
-    container_name: calendar-app
+      context: .
+      dockerfile: ./build/Dockerfile.calendar
+      args:
+        LDFLAGS: ${LDFLAGS:-}
+    container_name: calendar-api
     depends_on:
       postgres:
-        condition: service_healthy         # ждем готовности PostgreSQL
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
-      CONFIG_FILE: /etc/calendar/config.yaml  # путь к конфигурации
+      - CONFIG_FILE=/etc/calendar/config.yaml
     volumes:
-      - ./configs/config.yaml:/etc/calendar/config.yaml:ro  # монтируем конфиг
-      - ./migrations:/migrations:ro        # монтируем миграции
+      - ./configs/config.docker.yaml:/etc/calendar/config.yaml:ro
+      - ./migrations:/migrations:ro
     ports:
-      - "8080:8080"                        # проброс порта HTTP API
-    restart: unless-stopped                # автоматический перезапуск
+      - "8888:8080"  # HTTP API на порту 8888
+    restart: unless-stopped
+    networks:
+      - calendar-network
+
+  # Планировщик (Scheduler)
+  scheduler:
+    build:
+      context: .
+      dockerfile: ./build/Dockerfile.scheduler
+      args:
+        LDFLAGS: ${LDFLAGS:-}
+    container_name: calendar-scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - CONFIG_FILE=/etc/calendar/scheduler_config.yaml
+    volumes:
+      - ./configs/scheduler_config.docker.yaml:/etc/calendar/scheduler_config.yaml:ro
+      - ./migrations:/migrations:ro
+    restart: unless-stopped
+    networks:
+      - calendar-network
+
+  # Рассыльщик (Sender)
+  sender:
+    build:
+      context: .
+      dockerfile: ./build/Dockerfile.sender
+      args:
+        LDFLAGS: ${LDFLAGS:-}
+    container_name: calendar-sender
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - CONFIG_FILE=/etc/calendar/sender_config.yaml
+    volumes:
+      - ./configs/sender_config.docker.yaml:/etc/calendar/sender_config.yaml:ro
+      - ./migrations:/migrations:ro
+    restart: unless-stopped
+    networks:
+      - calendar-network
 
 # Именованные тома для постоянного хранения данных
 volumes:
-  pgdata:  # том для данных PostgreSQL 
+  pgdata:
+  rabbitmqdata:
+
+# Сеть для связи между сервисами
+networks:
+  calendar-network:
+    driver: bridge
