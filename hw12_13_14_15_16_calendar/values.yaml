@@ -1,22 +1,173 @@
-replicaCount: 1
+# Default values for calendar-chart
+# This is a YAML-formatted file.
 
-image:
-  repository: my-calendar-app
-  tag: "latest"
-  pullPolicy: IfNotPresent
+# Global settings
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
 
-service:
-  type: ClusterIP
-  port: 80
+# Calendar API service configuration
+calendar:
+  enabled: true
+  replicaCount: 1
+  
+  image:
+    repository: calendar-app
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  ingress:
+    enabled: false
+    className: "nginx"
+    annotations: {}
+    hosts:
+      - host: calendar.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
 
-ingress:
-  enabled: false
-  annotations: {}
-  hosts:
-    - host: chart-example.local
-      paths: []
-  tls: []
+# Scheduler service configuration
+scheduler:
+  enabled: true
+  replicaCount: 1
+  
+  image:
+    repository: calendar-scheduler
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  
+  livenessProbe:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - "ps aux | grep calendar-scheduler | grep -v grep"
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - "ps aux | grep calendar-scheduler | grep -v grep"
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
 
-resources: {}
+# Sender service configuration
+sender:
+  enabled: true
+  replicaCount: 1
+  
+  image:
+    repository: calendar-sender
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  
+  livenessProbe:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - "ps aux | grep calendar-sender | grep -v grep"
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    exec:
+      command:
+        - /bin/sh
+        - -c
+        - "ps aux | grep calendar-sender | grep -v grep"
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Database configuration
+database:
+  host: postgres
+  port: 5432
+  user: calendar
+  password: calendar
+  dbname: calendar
+
+# RabbitMQ configuration
+rabbitmq:
+  host: rabbitmq
+  port: 5672
+  user: calendar
+  password: calendar
+  vhost: /
+  queue: notifications
+
+# Scheduler configuration
+schedulerConfig:
+  intervalSeconds: 60
+
+# Logger configuration
+logger:
+  level: INFO
+
+# Storage configuration
+storage:
+  type: sql
+
+# Node selector, tolerations and affinity
 nodeSelector: {}
+tolerations: []
 affinity: {}
