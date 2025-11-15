@@ -56,7 +56,7 @@ func NewConnection(url string) (Connection, error) {
 
 	ch, err := conn.Channel()
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, fmt.Errorf("failed to open channel: %w", err)
 	}
 
@@ -197,19 +197,19 @@ func (c *RabbitMQConsumer) Consume(ctx context.Context, handler func(Notificatio
 				if err := json.Unmarshal(d.Body, &notification); err != nil {
 					// Логируем ошибку, но не подтверждаем сообщение
 					// В реальном приложении можно отправить в dead letter queue
-					d.Nack(false, false) // отклонить без повторной постановки
+					_ = d.Nack(false, false) // отклонить без повторной постановки
 					continue
 				}
 
 				// Обрабатываем уведомление
 				if err := handler(notification); err != nil {
 					// Ошибка обработки - отклоняем сообщение
-					d.Nack(false, true) // отклонить с повторной постановкой
+					_ = d.Nack(false, true) // отклонить с повторной постановкой
 					continue
 				}
 
 				// Успешная обработка - подтверждаем сообщение
-				d.Ack(false)
+				_ = d.Ack(false)
 			}
 		}
 	}()
