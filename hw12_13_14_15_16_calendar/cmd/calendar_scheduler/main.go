@@ -52,7 +52,7 @@ func main() {
 	if err != nil {
 		panic("failed to connect to db: " + err.Error())
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Применение миграций
 	if err := runMigrations(db); err != nil {
@@ -75,7 +75,7 @@ func main() {
 	if err != nil {
 		panic("failed to connect to RabbitMQ: " + err.Error())
 	}
-	defer queueConn.Close()
+	defer func() { _ = queueConn.Close() }()
 
 	// Объявление очереди
 	queueName := cfg.RabbitMQ.Queue
@@ -93,7 +93,7 @@ func main() {
 	if err != nil {
 		panic("failed to create publisher: " + err.Error())
 	}
-	defer publisher.Close()
+	defer func() { _ = publisher.Close() }()
 
 	// Инициализация приложения
 	calendarApp := app.New(logg, storage)

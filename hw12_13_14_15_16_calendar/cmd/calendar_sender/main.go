@@ -47,7 +47,7 @@ func main() {
 	if err != nil {
 		panic("failed to connect to RabbitMQ: " + err.Error())
 	}
-	defer queueConn.Close()
+	defer func() { _ = queueConn.Close() }()
 
 	// Объявление очереди
 	queueName := cfg.RabbitMQ.Queue
@@ -65,7 +65,7 @@ func main() {
 	if err != nil {
 		panic("failed to create consumer: " + err.Error())
 	}
-	defer consumer.Close()
+	defer func() { _ = consumer.Close() }()
 
 	logg.Info("sender started, waiting for notifications...")
 

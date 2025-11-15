@@ -72,7 +72,7 @@ func main() {
 		if err != nil {
 			panic("failed to connect to db: " + err.Error())
 		}
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Автоматическое применение миграций при запуске
 		if err := runMigrations(db); err != nil {
