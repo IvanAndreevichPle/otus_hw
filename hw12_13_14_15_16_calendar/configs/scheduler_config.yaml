@@ -1,0 +1,32 @@
+# Конфигурационный файл для сервиса Планировщик (Scheduler)
+# Формат: YAML
+
+logger:
+  # Уровень логирования: error, warn, info, debug
+  level: INFO
+
+storage:
+  # Тип хранилища: memory или sql
+  type: sql
+
+db:
+  # Настройки подключения к базе данных
+  host: localhost
+  port: 5432
+  user: calendar
+  password: calendar
+  dbname: calendar
+
+rabbitmq:
+  # Настройки подключения к RabbitMQ
+  host: localhost
+  port: 5672
+  user: calendar
+  password: calendar
+  vhost: /
+  queue: notifications
+
+scheduler:
+  # Интервал проверки событий в секундах
+  interval_seconds: 60
+

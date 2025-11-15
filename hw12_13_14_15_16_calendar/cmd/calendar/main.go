@@ -19,6 +19,7 @@ import (
 	internalhttp "github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/server/http"
 	memorystorage "github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/storage/memory"
 	sqlstorage "github.com/IvanAndreevichPle/hw12_13_14_15_16_calendar/internal/storage/sql"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
 )
@@ -66,16 +67,20 @@ func main() {
 		dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 			configData.DB.Host, configData.DB.Port, configData.DB.User, configData.DB.Password, configData.DB.DBName)
 
-		// Автоматическое применение миграций при запуске
-		if err := runMigrations(dsn); err != nil {
-			panic("failed to apply migrations: " + err.Error())
-		}
-
-		// Создание SQL хранилища с подключением к базе данных
-		storage, err = sqlstorage.New(dsn)
+		// Открываем соединение к базе данных один раз
+		db, err := sql.Open("postgres", dsn)
 		if err != nil {
 			panic("failed to connect to db: " + err.Error())
 		}
+		defer db.Close()
+
+		// Автоматическое применение миграций при запуске
+		if err := runMigrations(db); err != nil {
+			panic("failed to apply migrations: " + err.Error())
+		}
+
+		// Создание SQL хранилища с уже открытым соединением
+		storage = sqlstorage.NewWithDB(sqlx.NewDb(db, "postgres"))
 	default:
 		panic("unknown storage type: " + configData.Storage.Type)
 	}
@@ -115,17 +120,9 @@ func main() {
 }
 
 // runMigrations применяет миграции базы данных с помощью Goose.
-// Функция подключается к PostgreSQL и применяет все новые миграции.
-func runMigrations(dsn string) error {
-	// Открытие соединения с базой данных
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = db.Close() }()
-
+// Функция принимает уже открытое соединение *sql.DB.
+func runMigrations(db *sql.DB) error {
 	// Отладочная информация для диагностики проблем с миграциями
-	fmt.Printf("DSN: %s\n", dsn)
 	fmt.Printf("Migrations path: %s\n", migrationsPath)
 
 	// Проверяем, что файлы миграций существуют в контейнере

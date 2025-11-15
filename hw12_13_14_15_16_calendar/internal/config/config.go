@@ -9,10 +9,12 @@ import (
 
 // Config описывает структуру основного конфига приложения.
 type Config struct {
-	Logger  LoggerConf  `yaml:"logger"`  // параметры логирования
-	Storage StorageConf `yaml:"storage"` // параметры хранилища
-	Server  ServerConf  `yaml:"server"`  // параметры HTTP-сервера
-	DB      DBConf      `yaml:"db"`      // параметры БД
+	Logger    LoggerConf    `yaml:"logger"`              // параметры логирования
+	Storage   StorageConf   `yaml:"storage"`             // параметры хранилища
+	Server    ServerConf    `yaml:"server"`              // параметры HTTP-сервера
+	DB        DBConf        `yaml:"db"`                  // параметры БД
+	RabbitMQ  RabbitMQConf  `yaml:"rabbitmq,omitempty"`  // параметры RabbitMQ
+	Scheduler SchedulerConf `yaml:"scheduler,omitempty"` // параметры планировщика
 }
 
 // LoggerConf содержит параметры логирования.
@@ -38,6 +40,21 @@ type DBConf struct {
 	User     string `yaml:"user"`     // пользователь
 	Password string `yaml:"password"` // пароль
 	DBName   string `yaml:"dbname"`   // имя базы
+}
+
+// RabbitMQConf содержит параметры подключения к RabbitMQ.
+type RabbitMQConf struct {
+	Host     string `yaml:"host"`     // адрес RabbitMQ
+	Port     int    `yaml:"port"`     // порт RabbitMQ
+	User     string `yaml:"user"`     // пользователь
+	Password string `yaml:"password"` // пароль
+	VHost    string `yaml:"vhost"`    // виртуальный хост
+	Queue    string `yaml:"queue"`    // имя очереди
+}
+
+// SchedulerConf содержит параметры планировщика.
+type SchedulerConf struct {
+	IntervalSeconds int `yaml:"interval_seconds"` // интервал проверки событий в секундах
 }
 
 // NewConfigFromFile читает и парсит YAML-конфиг из файла.

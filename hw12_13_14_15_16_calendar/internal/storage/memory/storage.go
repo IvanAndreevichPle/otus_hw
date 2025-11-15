@@ -100,3 +100,35 @@ func (s *Storage) ListEvents(ctx context.Context, userID string) ([]storage.Even
 	}
 	return result, nil
 }
+
+// GetEventsForNotification возвращает события, требующие уведомления.
+func (s *Storage) GetEventsForNotification(ctx context.Context, currentTime int64) ([]storage.Event, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var result []storage.Event
+	for _, e := range s.events {
+		if e.NotifyBefore != nil {
+			// Событие требует уведомления, если:
+			// (start_time - notify_before) <= current_time < start_time
+			notifyTime := e.StartTime - *e.NotifyBefore
+			if notifyTime <= currentTime && currentTime < e.StartTime {
+				result = append(result, e)
+			}
+		}
+	}
+	return result, nil
+}
+
+// DeleteOldEvents удаляет события, произошедшие более указанного времени назад.
+func (s *Storage) DeleteOldEvents(ctx context.Context, beforeTime int64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for id, e := range s.events {
+		if e.StartTime < beforeTime {
+			delete(s.events, id)
+		}
+	}
+	return nil
+}

@@ -1,0 +1,16 @@
+# Конфигурационный файл для сервиса Рассыльщик (Sender)
+# Формат: YAML
+
+logger:
+  # Уровень логирования: error, warn, info, debug
+  level: INFO
+
+rabbitmq:
+  # Настройки подключения к RabbitMQ
+  host: localhost
+  port: 5672
+  user: calendar
+  password: calendar
+  vhost: /
+  queue: notifications
+
