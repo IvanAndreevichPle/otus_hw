@@ -1,0 +1,47 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+act
+calendar
+calendar_sender
+
+# Test files
+*.test
+*.out
+
+# Development files
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Build artifacts
+*.tar.gz
+go1.*.tar.gz
+
+# Docker files
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Config files (not needed in chart)
+configs/
+
+# Source code (not needed, only templates)
+cmd/
+internal/
+api/
+# migrations/ - needed for ConfigMap
+
+# Other
+deployments/
+

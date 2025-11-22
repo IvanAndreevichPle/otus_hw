@@ -1,0 +1,99 @@
+{{- if .Values.calendar.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "calendar-chart.fullname" . }}-calendar-config
+  labels:
+    {{- include "calendar-chart.calendar.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    logger:
+      level: {{ .Values.logger.level }}
+    storage:
+      type: {{ .Values.storage.type }}
+    server:
+      host: 0.0.0.0
+      port: {{ .Values.calendar.service.targetPort }}
+    db:
+      host: {{ .Values.database.host }}
+      port: {{ .Values.database.port }}
+      user: {{ .Values.database.user }}
+      password: {{ .Values.database.password }}
+      dbname: {{ .Values.database.dbname }}
+    rabbitmq:
+      host: {{ .Values.rabbitmq.host }}
+      port: {{ .Values.rabbitmq.port }}
+      user: {{ .Values.rabbitmq.user }}
+      password: {{ .Values.rabbitmq.password }}
+      vhost: {{ .Values.rabbitmq.vhost }}
+      queue: {{ .Values.rabbitmq.queue }}
+{{- end }}
+
+---
+{{- if .Values.scheduler.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "calendar-chart.fullname" . }}-scheduler-config
+  labels:
+    {{- include "calendar-chart.scheduler.labels" . | nindent 4 }}
+data:
+  scheduler_config.yaml: |
+    logger:
+      level: {{ .Values.logger.level }}
+    storage:
+      type: {{ .Values.storage.type }}
+    db:
+      host: {{ .Values.database.host }}
+      port: {{ .Values.database.port }}
+      user: {{ .Values.database.user }}
+      password: {{ .Values.database.password }}
+      dbname: {{ .Values.database.dbname }}
+    rabbitmq:
+      host: {{ .Values.rabbitmq.host }}
+      port: {{ .Values.rabbitmq.port }}
+      user: {{ .Values.rabbitmq.user }}
+      password: {{ .Values.rabbitmq.password }}
+      vhost: {{ .Values.rabbitmq.vhost }}
+      queue: {{ .Values.rabbitmq.queue }}
+    scheduler:
+      interval_seconds: {{ .Values.schedulerConfig.intervalSeconds }}
+{{- end }}
+
+---
+{{- if .Values.sender.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "calendar-chart.fullname" . }}-sender-config
+  labels:
+    {{- include "calendar-chart.sender.labels" . | nindent 4 }}
+data:
+  sender_config.yaml: |
+    logger:
+      level: {{ .Values.logger.level }}
+    db:
+      host: {{ .Values.database.host }}
+      port: {{ .Values.database.port }}
+      user: {{ .Values.database.user }}
+      password: {{ .Values.database.password }}
+      dbname: {{ .Values.database.dbname }}
+    rabbitmq:
+      host: {{ .Values.rabbitmq.host }}
+      port: {{ .Values.rabbitmq.port }}
+      user: {{ .Values.rabbitmq.user }}
+      password: {{ .Values.rabbitmq.password }}
+      vhost: {{ .Values.rabbitmq.vhost }}
+      queue: {{ .Values.rabbitmq.queue }}
+{{- end }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "calendar-chart.fullname" . }}-migrations
+  labels:
+    {{- include "calendar-chart.labels" . | nindent 4 }}
+data:
+{{- (.Files.Glob "migrations/*.sql").AsConfig | indent 2 }}
+

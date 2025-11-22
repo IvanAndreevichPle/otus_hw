@@ -1,0 +1,78 @@
+{{- if .Values.sender.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "calendar-chart.fullname" . }}-sender
+  labels:
+    {{- include "calendar-chart.sender.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.sender.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "calendar-chart.sender.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "calendar-chart.sender.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: sender
+        image: "{{ .Values.global.imageRegistry }}{{ .Values.sender.image.repository }}:{{ .Values.sender.image.tag }}"
+        imagePullPolicy: {{ .Values.sender.image.pullPolicy }}
+        env:
+        - name: CONFIG_FILE
+          value: "/etc/calendar/sender_config.yaml"
+        - name: DB_HOST
+          value: {{ .Values.database.host | quote }}
+        - name: DB_PORT
+          value: {{ .Values.database.port | quote }}
+        - name: DB_USER
+          value: {{ .Values.database.user | quote }}
+        - name: DB_NAME
+          value: {{ .Values.database.dbname | quote }}
+        - name: RABBITMQ_QUEUE
+          value: {{ .Values.rabbitmq.queue | quote }}
+        - name: LOGGER_LEVEL
+          value: {{ .Values.logger.level | quote }}
+        volumeMounts:
+        - name: config
+          mountPath: /etc/calendar
+          readOnly: true
+        - name: migrations
+          mountPath: /migrations
+          readOnly: true
+        {{- if .Values.sender.livenessProbe }}
+        livenessProbe:
+          {{- toYaml .Values.sender.livenessProbe | nindent 10 }}
+        {{- end }}
+        {{- if .Values.sender.readinessProbe }}
+        readinessProbe:
+          {{- toYaml .Values.sender.readinessProbe | nindent 10 }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.sender.resources | nindent 10 }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "calendar-chart.fullname" . }}-sender-config
+      - name: migrations
+        configMap:
+          name: {{ include "calendar-chart.fullname" . }}-migrations
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+
