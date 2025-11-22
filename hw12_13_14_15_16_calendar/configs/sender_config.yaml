@@ -5,6 +5,14 @@ logger:
   # Уровень логирования: error, warn, info, debug
   level: INFO
 
+db:
+  # Настройки подключения к базе данных (опционально, для сохранения статуса уведомлений)
+  host: localhost
+  port: 5432
+  user: calendar
+  password: calendar
+  dbname: calendar
+
 rabbitmq:
   # Настройки подключения к RabbitMQ
   host: localhost

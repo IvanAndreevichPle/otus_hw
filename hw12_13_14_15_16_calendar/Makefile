@@ -80,5 +80,33 @@ lint: mod-download install-lint-deps
 generate:
 	cd api && go generate gen.go
 
+# Запуск всех сервисов через docker-compose
+up:
+	docker-compose -f docker-compose.full.yml up -d
+
+# Остановка всех сервисов через docker-compose
+down:
+	docker-compose -f docker-compose.full.yml down
+
+# Остановка всех сервисов с удалением данных
+down-clean:
+	docker-compose -f docker-compose.full.yml down -v
+
+# Просмотр логов всех сервисов
+logs:
+	docker-compose -f docker-compose.full.yml logs -f
+
+# Запуск интеграционных тестов
+integration-tests:
+	@echo "Starting integration tests environment..."
+	docker-compose -f docker-compose.test.yml up -d postgres-test rabbitmq-test
+	@echo "Waiting for services to be ready..."
+	@sleep 5
+	@echo "Running integration tests..."
+	docker-compose -f docker-compose.test.yml up --abort-on-container-exit --exit-code-from integration-tests integration-tests
+	@EXIT_CODE=$$?; \
+	docker-compose -f docker-compose.test.yml down -v; \
+	exit $$EXIT_CODE
+
 # Объявление phony targets (целей, которые не являются файлами)
-.PHONY: build run build-img run-img version test lint db-up db-down db-down-clean db-create-test test-with-db generate
+.PHONY: build run build-img run-img version test lint db-up db-down db-down-clean db-create-test test-with-db generate up down down-clean logs integration-tests

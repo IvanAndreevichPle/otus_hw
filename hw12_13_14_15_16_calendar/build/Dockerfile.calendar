@@ -1,0 +1,49 @@
+# Dockerfile для сборки приложения Календарь (API)
+# Использует multi-stage build для создания минимального образа
+
+# Этап сборки: компиляция Go приложения
+FROM golang:1.23 as build
+
+# Переменные окружения для сборки
+ENV BIN_FILE /opt/calendar/calendar-app
+ENV CODE_DIR /go/src/
+
+WORKDIR ${CODE_DIR}
+
+# Копируем файлы зависимостей и кэшируем слои с модулями
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+# Копируем весь исходный код
+COPY . ${CODE_DIR}
+
+# Собираем статический бинарник Go
+ARG LDFLAGS
+RUN CGO_ENABLED=0 go build \
+        -ldflags "$LDFLAGS" \
+        -o ${BIN_FILE} ./cmd/calendar
+
+# Этап финального образа: минимальный Alpine Linux
+FROM alpine:3.19
+
+# Устанавливаем ca-certificates для HTTPS запросов
+RUN apk --no-cache add ca-certificates tzdata
+
+# Метаданные образа
+LABEL ORGANIZATION="OTUS Online Education"
+LABEL SERVICE="calendar"
+LABEL MAINTAINERS="student@otus.ru"
+
+# Копируем скомпилированный бинарник из этапа сборки
+ENV BIN_FILE "/opt/calendar/calendar-app"
+COPY --from=build ${BIN_FILE} ${BIN_FILE}
+
+# Копируем миграции
+COPY ./migrations /migrations
+
+WORKDIR /opt/calendar
+
+# Команда запуска приложения
+CMD ${BIN_FILE} --config /etc/calendar/config.yaml --migrations /migrations
+

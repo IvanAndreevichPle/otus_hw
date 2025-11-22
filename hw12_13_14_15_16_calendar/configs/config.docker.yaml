@@ -1,0 +1,24 @@
+# Конфигурационный файл для сервиса Календарь (Docker)
+# Формат: YAML
+
+logger:
+  # Уровень логирования: error, warn, info, debug
+  level: INFO
+
+storage:
+  # Тип хранилища: memory или sql
+  type: sql
+
+server:
+  # Адрес и порт для HTTP-сервера
+  host: 0.0.0.0
+  port: 8080
+
+db:
+  # Настройки подключения к базе данных (используется, если storage.type = sql)
+  host: postgres  # имя сервиса в docker-compose
+  port: 5432
+  user: calendar
+  password: calendar
+  dbname: calendar
+
