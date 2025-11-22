@@ -24,11 +24,13 @@ type Logger interface {
 
 // Storage — интерфейс для работы с хранилищем событий.
 type Storage interface {
-	CreateEvent(ctx context.Context, event storage.Event) error             // Создать событие
-	UpdateEvent(ctx context.Context, event storage.Event) error             // Обновить событие
-	DeleteEvent(ctx context.Context, id string) error                       // Удалить событие
-	GetEvent(ctx context.Context, id string) (storage.Event, error)         // Получить событие по ID
-	ListEvents(ctx context.Context, userID string) ([]storage.Event, error) // Получить все события пользователя
+	CreateEvent(ctx context.Context, event storage.Event) error                               // Создать событие
+	UpdateEvent(ctx context.Context, event storage.Event) error                               // Обновить событие
+	DeleteEvent(ctx context.Context, id string) error                                         // Удалить событие
+	GetEvent(ctx context.Context, id string) (storage.Event, error)                           // Получить событие по ID
+	ListEvents(ctx context.Context, userID string) ([]storage.Event, error)                   // Получить все события пользователя
+	GetEventsForNotification(ctx context.Context, currentTime int64) ([]storage.Event, error) // Получить события, требующие уведомления
+	DeleteOldEvents(ctx context.Context, beforeTime int64) error                              // Удалить старые события
 }
 
 // ErrDateBusy — ошибка, если время уже занято другим событием.
@@ -100,4 +102,14 @@ func (a *App) ListEventsForMonth(ctx context.Context, userID string, monthStart 
 // Logger возвращает логгер приложения.
 func (a *App) Logger() Logger {
 	return a.logger
+}
+
+// GetEventsForNotification возвращает события, требующие уведомления.
+func (a *App) GetEventsForNotification(ctx context.Context, currentTime int64) ([]storage.Event, error) {
+	return a.storage.GetEventsForNotification(ctx, currentTime)
+}
+
+// DeleteOldEvents удаляет старые события.
+func (a *App) DeleteOldEvents(ctx context.Context, beforeTime int64) error {
+	return a.storage.DeleteOldEvents(ctx, beforeTime)
 }

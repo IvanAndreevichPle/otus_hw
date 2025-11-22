@@ -1,4 +1,4 @@
-# Docker Compose конфигурация только для базы данных PostgreSQL
+# Docker Compose конфигурация для базы данных PostgreSQL и RabbitMQ
 # Используется для разработки и тестирования
 version: '3.8'
 services:
@@ -21,6 +21,26 @@ services:
       timeout: 5s
       retries: 5
 
+  # Сервис RabbitMQ для очереди сообщений
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: calendar-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: calendar  # пользователь RabbitMQ
+      RABBITMQ_DEFAULT_PASS: calendar  # пароль RabbitMQ
+    ports:
+      - "5672:5672"                # порт AMQP
+      - "15672:15672"              # порт веб-интерфейса управления
+    restart: unless-stopped        # автоматический перезапуск
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq  # постоянное хранение данных
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]  # проверка готовности RabbitMQ
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 # Именованные тома для постоянного хранения данных
 volumes:
-  pgdata:  # том для данных PostgreSQL 
+  pgdata:        # том для данных PostgreSQL
+  rabbitmqdata:  # том для данных RabbitMQ 

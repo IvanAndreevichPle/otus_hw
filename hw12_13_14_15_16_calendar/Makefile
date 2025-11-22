@@ -2,20 +2,24 @@
 # Содержит команды для сборки, тестирования и развертывания приложения
 
 # Переменные для сборки
-BIN := "./bin/calendar"                    # путь к исполняемому файлу
-DOCKER_IMG="calendar:develop"              # имя Docker образа
+BIN_CALENDAR := "./bin/calendar"                    # путь к исполняемому файлу API
+BIN_SCHEDULER := "./bin/calendar_scheduler"          # путь к исполняемому файлу планировщика
+BIN_SENDER := "./bin/calendar_sender"               # путь к исполняемому файлу рассыльщика
+DOCKER_IMG="calendar:develop"                      # имя Docker образа
 
 # Информация о сборке для внедрения в бинарный файл
 GIT_HASH := $(shell git log --format="%h" -n 1)  # хеш последнего коммита
 LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
 
-# Сборка исполняемого файла с внедренной информацией о версии
+# Сборка всех исполняемых файлов с внедренной информацией о версии
 build:
-	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/calendar
+	go build -v -o $(BIN_CALENDAR) -ldflags "$(LDFLAGS)" ./cmd/calendar
+	go build -v -o $(BIN_SCHEDULER) -ldflags "$(LDFLAGS)" ./cmd/calendar_scheduler
+	go build -v -o $(BIN_SENDER) -ldflags "$(LDFLAGS)" ./cmd/calendar_sender
 
 # Сборка и запуск приложения с конфигурацией по умолчанию
 run: build
-	$(BIN) --config ./configs/config.yaml
+	$(BIN_CALENDAR) --config ./configs/config.yaml
 
 # Сборка Docker образа
 build-img:
@@ -54,7 +58,7 @@ test-with-db: db-up
 
 # Отображение версии приложения
 version: build
-	$(BIN) version
+	$(BIN_CALENDAR) version
 
 # Запуск тестов с проверкой на race conditions
 test:
